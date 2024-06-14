@@ -1,0 +1,503 @@
+---
+title: "fathers initial romantic turbulence association with adolescent diagnosed depression"
+output: pdf_document
+---
+output: .pdf
+---
+NAME: Emma Sun 
+---
+
+```{r 1}
+# Load Package
+library(psych)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+library(haven)
+library(caret)
+library(MLmetrics)
+library(ggcorrplot)
+library(randomForest)
+library(boot)
+```
+
+```{r 2}
+# Load dataset
+filepath_2 <- "/Users/emmasun/Desktop/data/wave2/FF_wave2_2020v2.dta"
+wave_2 <- read_dta(filepath_2)
+# Check the shape 
+dim(wave_2)
+#str(wave_2)
+filepath_6 <- "/Users/emmasun/Desktop/data/wave6/FF_wave6_2020v2.dta"
+wave_6 <- read_dta(filepath_6)
+dim(wave_6)
+#str(wave_6)
+``` 
+
+```{r 3}
+# Combine the datasets based on idnum
+dataset <- full_join(wave_6, wave_2, by = "idnum")
+# Select the desired variables
+selected_vars <- c('idnum', 'cf2age', 'f2c20b1', 'f2c20b2', 'f2c20b3', 
+                   'f2c20b4', 'f2c20b5', 'f2f2b1','f2f2b2', 'f2f2b3', 
+                   'f2f2b4', 'f2f2b5', 'f2f2b6', 'f2f2b7', 'f2f2b8', 
+                   'f2f2b9', 'f2f2b10', 'f2f2c1', 'f2f2c2', 'f2f2c3', 
+                   'f2f2c4', 'f2f2c5', 'f2f2c6', 'f2f2c7', 'f2f2c8', 
+                   'f2f2c10', 'f2g1d', 'f2g5', 'f2g5a', 'f2g5b', 
+                   'f2k7', 'cf2span','f2a5', 'f2a5a', 'f2a6', 'f2a6a', 
+                   'f2a6a1', 'f2a6a2', 'f2a7a', 'f2a7a1a','f2a7a1b', 
+                   'f2a7b', 'f2a7b1a', 'f2a7b1b', 'f2a7c', 'f2a7c1a', 
+                   'f2a7c1b', 'f2a7d', 'f2a7d1', 'f2a7e', 'f2a7e1a', 
+                   'f2a7e1b', 'f2a8a', 'f2a8b', 'f2a8e', 'f2a8f', 
+                   'f2a8g','f2a8h', 'f2a9', 'f2a10', 'cf2marm', 'cf2cohm', 
+                   'f2b1a', 'f2c5', 'f2c8', 'f2c11a','f2c13c3', 'f2c14', 
+                   'f2c17', 'f2d1', 'f2d1x', 'f2d2c', 'f2d2d', 'f2d2e', 
+                   'f2d3', 'f2d3a', 'f2d4', 'f2d5a', 'f2d5b', 'f2d5c', 
+                   'f2d5d', 'f2d5e', 'f2d5f', 'f2d5g','f2d5h', 'f2d5i', 
+                   'f2d6', 'f2d7a', 'f2d7b', 'f2d7c', 'f2d7d', 'f2d7e', 
+                   'f2d7f','f2d7g', 'f2d7h', 'f2d7i', 'f2e1', 'f2e2a2', 
+                   'f2f0', 'f2h16d', 'f2l3', 'f2l6d','f2l7', 'f2l8', 
+                   'f2l8b', 'p6b5')
+dataset <- dataset[, selected_vars]
+# Check the shape 
+dim(dataset)
+# Exclude "idnum" from the selected variables
+selected_vars <- selected_vars[!selected_vars %in% "idnum"]
+# Subset the dataset
+dataset <- dataset[, selected_vars]
+# Check the shape of the dataset
+dim(dataset)
+#str(dataset)
+describe(dataset)
+#summary(dataset)
+# Check missing value
+colSums(is.na(dataset))
+# Check duplicate 
+table(duplicated(dataset))
+``` 
+
+```{r 4}
+#Check target variable
+table(dataset$p6b5)
+# Extract the variable 
+p6b5<- dataset$p6b5 
+# Compute frequencies of unique values
+value_counts <- table(p6b5)
+# Convert to data frame
+value_counts_df <- as.data.frame(value_counts)
+# Plot pie chart
+ggplot(value_counts_df, aes(x = "", y = Freq, fill = factor(p6b5))) +
+  geom_bar(stat = "identity") +
+  coord_polar("y", start=0) + 
+  theme_void() +
+  labs(title = "Distribution of Target Variable")
+``` 
+
+```{r 5}
+# Make a copy of the dataset and rename it to "stake_plot_data"
+stake_plot_data <- dataset  
+# Specify the column names to reorder
+columns_to_reorder <- c("p6b5","f2d3a","f2d3","f2d2d","f2d2c","f2d5a")
+# Loop through each column and reorder factor levels
+for (col in columns_to_reorder) {
+  stake_plot_data[[col]] <- factor(stake_plot_data[[col]], 
+                                   levels = c("-10","-9", "-8", "-7", "-6", 
+                                              "-5", "-4", "-3", "-2", "-1", 
+                                              "0", "1", "2", "3", "4", "5"))
+}
+# Reshape the data to long format for plotting
+data_long <- stake_plot_data %>%
+  select(all_of(columns_to_reorder)) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+# Plot the stacked bar plot with title
+ggplot(data_long, aes(x = Variable, fill = Value)) +
+  geom_bar() +
+  labs(x = "Variable", y = "Count", fill = "Factor") +
+  ggtitle("Stacked Bar Plot of Factor Levels") +  # Add title
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+``` 
+
+
+```{r 6}
+# Remove rows with negative values in 'p6b5'
+dataset <- subset(dataset, p6b5 >= 0)
+# Check the shape of the dataset after removal
+dim(dataset)
+``` 
+
+```{r 7}
+#Check target variable
+table(dataset$p6b5)
+# Extract the variable 
+p6b5<- dataset$p6b5 
+# Compute frequencies of unique values
+value_counts <- table(p6b5)
+# Convert to data frame
+value_counts_df <- as.data.frame(value_counts)
+# Plot pie chart
+ggplot(value_counts_df, aes(x = "", y = Freq, fill = factor(p6b5))) +
+  geom_bar(stat = "identity") +
+  coord_polar("y", start=0) + 
+  theme_void() +
+  labs(title = "Distribution of Target Variable")
+``` 
+
+```{r 8}
+# Make a copy of the dataset and rename it to "stake_plot_data"
+stake_plot_data <- dataset  
+# Specify the column names to reorder
+columns_to_reorder <- c("p6b5","f2d3a","f2d3","f2d2d","f2d2c","f2d5a")
+# Loop through each column and reorder factor levels
+for (col in columns_to_reorder) {
+  stake_plot_data[[col]] <- factor(stake_plot_data[[col]], 
+                                   levels = c("-10","-9", "-8", "-7", "-6", 
+                                              "-5", "-4", "-3", "-2", "-1", "0",
+                                              "1", "2", "3", "4", "5"))
+}
+# Reshape the data to long format for plotting
+data_long <- stake_plot_data %>%
+  select(all_of(columns_to_reorder)) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+# Plot the stacked bar plot with title
+ggplot(data_long, aes(x = Variable, fill = Value)) +
+  geom_bar() +
+  labs(x = "Variable", y = "Count", fill = "Factor") +
+  ggtitle("Stacked Bar Plot of Factor Levels") +  # Add title
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+``` 
+
+```{r 9}
+num_cols <- c('f2a7a1b','f2a7b1b','f2a7c1b','f2a7e1b','cf2age','f2c20b1',
+              'f2c20b2','f2c20b3','f2c20b3','f2c20b5','f2f2c1','f2f2c2',
+              'f2f2c3','f2f2c4','f2f2c5','f2f2c6','f2f2c7','f2f2c8',
+              'f2f2c10')
+ggcorrplot(cor(dataset[,num_cols]) , type = "lower", 
+           lab=T, title = 'Correlation of Continuous Variables')
+``` 
+
+```{r 10}
+# Create boxplots for each variable
+boxplot_cf2age <- ggplot(dataset, aes(x = "", y = cf2age)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for cf2age", y = "cf2age") +
+  theme_minimal()
+boxplot_f2a7b1b <- ggplot(dataset, aes(x = "", y = f2a7b1b)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for f2a7b1b", y = "f2a7b1b") +
+  theme_minimal()
+boxplot_f2c20b1 <- ggplot(dataset, aes(x = "", y = f2c20b1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for f2c20b1", y = "f2c20b1") +
+  theme_minimal()
+# Combine boxplots in a single plot
+combined_boxplot <- grid.arrange(boxplot_cf2age, boxplot_f2a7b1b, 
+                                 boxplot_f2c20b1, ncol = 3)
+# Display the combined boxplots
+print(combined_boxplot)
+``` 
+
+```{r 11}
+dataset3 <- dataset 
+# Delete negative values for each variable
+dataset3$cf2age[dataset3$cf2age < 0] <- NA
+dataset3$f2a7b1b[dataset3$f2a7b1b < 0] <- NA
+dataset3$f2c20b1[dataset3$f2c20b1 < 0] <- NA
+# Create boxplots for each variable
+boxplot_cf2age <- ggplot(dataset3, aes(x = "", y = cf2age)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for cf2age", y = "cf2age") +
+  theme_minimal()
+boxplot_f2a7b1b <- ggplot(dataset3, aes(x = "", y = f2a7b1b)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for f2a7b1b", y = "f2a7b1b") +
+  theme_minimal()
+boxplot_f2c20b1 <- ggplot(dataset3, aes(x = "", y = f2c20b1)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Boxplot for f2c20b1", y = "f2c20b1") +
+  theme_minimal()
+# Combine boxplots in a single plot
+combined_boxplot <- grid.arrange(boxplot_cf2age, boxplot_f2a7b1b, 
+                                 boxplot_f2c20b1, ncol = 3)
+# Display the combined boxplots
+print(combined_boxplot)
+``` 
+
+```{r 12}
+# Factorizing each variable
+dataset1 <- dataset 
+dataset1$p6b5 <- factor(dataset1$p6b5)
+# Set the number of folds for stratified K-fold cross-validation
+num_folds <- 5
+# Create stratified folds
+folds <- createFolds(dataset1$p6b5, k = num_folds, 
+                     list = TRUE, returnTrain = FALSE)
+# Initialize lists to store evaluation metrics
+accuracy1 <- vector("numeric", num_folds)
+precision1 <- vector("numeric", num_folds)
+recall1 <- vector("numeric", num_folds)
+f1_score1 <- vector("numeric", num_folds)
+# Loop through each fold
+for (i in 1:num_folds) {
+  # Extract the indices for the current fold
+  test_index <- unlist(folds[i])
+  # Create training indices by excluding the test indices
+  train_index <- setdiff(1:nrow(dataset1), test_index)
+  # Extract train and test data using the indices
+  train_data <- dataset1[train_index, ]
+  test_data <- dataset1[test_index, ]
+  # Fit GLM model
+  glm_model1 <- glm(p6b5 ~ ., data = train_data, family = binomial)
+  glm_model2 <- glm(p6b5 ~ f2f2b5 + f2f2c5 + f2d5f + f2d7c + f2d7i, 
+                    data = train_data, family = binomial)
+  # Make predictions on the test data
+  predictions <- predict(glm_model1, newdata = test_data, type = "response")
+  # Convert predictions to binary outcomes (0 or 1) based on a threshold 
+  predicted_classes <- ifelse(predictions >= 0.5, 1, 0)
+  # Evaluate the model performance
+  confusion_matrix1 <- table(predicted_classes, test_data$p6b5)
+  accuracy1[i] <- sum(diag(confusion_matrix1)) / sum(confusion_matrix1)
+  precision1[i] <- confusion_matrix1[2, 2] / sum(confusion_matrix1[, 2])
+  recall1[i] <- confusion_matrix1[2, 2] / sum(confusion_matrix1[2, ])
+  f1_score1[i] <- 2 * precision1[i] * recall1[i] / (precision1[i] + recall1[i])
+}
+# Print evaluation metrics
+cat("Accuracy:", mean(accuracy1), "\n")
+cat("Precision:", mean(precision1), "\n")
+cat("Recall:", mean(recall1), "\n")
+cat("F1 Score:", mean(f1_score1), "\n")
+confusion_matrix1
+# Print model summary
+summary(glm_model1)
+# perform chi test
+test <- anova(glm_model1, glm_model2, test = "Chisq")
+print(test)
+``` 
+```{r 13}
+# Convert the target variable to a factor
+dataset2 <- dataset 
+dataset2$p6b5 <- factor(dataset2$p6b5)
+# Set the number of folds for stratified K-fold cross-validation
+num_folds <- 5
+# Create stratified folds
+folds <- createFolds(dataset2$p6b5, k = num_folds, 
+                     list = TRUE, returnTrain = FALSE)
+# Initialize lists to store evaluation metrics
+accuracy2 <- vector("numeric", num_folds)
+precision2 <- vector("numeric", num_folds)
+recall2 <- vector("numeric", num_folds)
+f1_score2 <- vector("numeric", num_folds)
+# Loop through each fold
+for (i in 1:num_folds) {
+  # Extract the indices for the current fold
+  test_index <- unlist(folds[i])
+  # Create training indices by excluding the test indices
+  train_index <- setdiff(1:nrow(dataset2), test_index)
+  # Extract train and test data using the indices
+  train_data <- dataset2[train_index, ]
+  test_data <- dataset2[test_index, ]
+  # Fit model
+  rf_model <- randomForest(p6b5 ~ ., data = train_data, ntree = 100)
+  # Make predictions on the test data
+  predictions <- predict(rf_model, newdata = test_data)
+  # Evaluate the model performance
+  confusion_matrix2 <- table(predictions, test_data$p6b5)
+  # Calculate evaluation metrics
+  accuracy2[i] <- sum(diag(confusion_matrix2)) / sum(confusion_matrix2)
+  # Check if any class is missing in predictions
+  if (length(levels(predictions)) < 2) {
+    precision2[i] <- 0
+    recall2[i] <- 0
+    f1_score2[i] <- 0
+  } else {
+    precision2[i] <- confusion_matrix2[2, 2] / sum(confusion_matrix2[, 2]) 
+    recall2[i] <- confusion_matrix2[2, 2] / sum(confusion_matrix2[2, ])     
+    f1_score2[i] <- 2 * precision2[i] * recall2[i] / (precision2[i] + recall2[i])
+  }
+}
+# Print evaluation metrics
+cat("Accuracy:", mean(accuracy2), "\n")
+cat("Precision:", mean(precision2), "\n")
+cat("Recall:", mean(recall2), "\n")
+cat("F1 Score:", mean(f1_score2), "\n")
+confusion_matrix2
+# Print model summary
+summary(rf_model)
+``` 
+
+```{r 14}
+# Calculate the baseline accuracy
+baseline_accuracy <- max(table(dataset$p6b5)) / sum(table(dataset$p6b5))
+# Print the baseline accuracy
+print(paste("Baseline Accuracy:", baseline_accuracy))
+#employing F-beta score with beta of 0.5 as evaluation metric is beneficiary 
+#since it aligns perfectly with preference to prioritize maximizing true positives. 
+#It is also preferable to prioritize reducing false positives over reducing false negatives, 
+#because prioritizing precision over recall contributes to 
+#effective allocation of valuable mental health services.
+#Based on the assumption that the baseline model predicts all points as class 1,
+#this formula computes the baseline at: 
+#Baseline F-beta Score = 1.25 * Precision * Recall / (0.25 * Precision + Recall)
+# Define the counts for each class
+count_class_1 <- 404
+count_class_0 <- 3175
+# Calculate precision and recall for the baseline model
+precision_baseline <- count_class_1 / (count_class_1 + count_class_0)
+recall_baseline <- count_class_1 / (count_class_1 + 0)
+# Calculate the baseline F-beta score
+beta <- 0.25
+Baseline_F_beta <- (1 + beta^2) * precision_baseline * recall_baseline / 
+  (beta^2 * precision_baseline + recall_baseline)
+# Print the baseline F-beta score
+print(paste("Baseline F-beta Score:", Baseline_F_beta))
+``` 
+
+```{r 15}
+# Combine evaluation metrics into a single data frame
+metrics_comparison <- data.frame(
+  Model = c("GLM", "Random Forest"),
+  Accuracy = c(mean(accuracy1), mean(accuracy2)),
+  F1_Score = c(mean(f1_score1), mean(f1_score2)),
+  Precision = c(mean(precision1), mean(precision2)),
+  Recall = c(mean(recall1), mean(recall2)),
+  Baseline_Accuracy = baseline_accuracy,
+  Baseline_F_beta = Baseline_F_beta
+)
+# Print comparison table
+print(metrics_comparison)
+``` 
+
+```{r 16}
+# Get variable importance
+rf_variable_importance <- importance(rf_model)
+# Order the variable importance in decreasing order
+rf_variable_importance <- rf_variable_importance[order(rf_variable_importance, 
+                                                       decreasing = TRUE),]
+# Print variable importance
+print("Variable Importance for Random Forest:")
+print(rf_variable_importance)
+# Get the top 5 and bottom 5 features
+top_5_features <- names(head(rf_variable_importance, 10))
+bottom_5_features <- names(tail(rf_variable_importance, 10))
+# Combine top 5 and bottom 5 features
+selected_features <- c(top_5_features, bottom_5_features)
+# Filter the variable importance data frame to include only the selected features
+rf_variable_importance_df <- data.frame(
+  Variable = selected_features,
+  Importance = rf_variable_importance[selected_features]
+)
+# Create ggplot
+if (nrow(rf_variable_importance_df) > 0) {
+  ggplot(rf_variable_importance_df, aes(x = reorder(Variable, Importance), 
+                                        y = Importance)) +
+    geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+    coord_flip() +
+    labs(title = "Top 10 and Bottom 10 Feature Importance for Random Forest",
+         x = "Variable",
+         y = "Importance") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.y = element_text(size = 8))  
+}
+``` 
+
+```{r 17}
+# Number of bootstrap iterations
+num_bootstrap <- 100
+# Initialize lists to store evaluation metrics for each bootstrap iteration
+bootstrap_accuracy <- vector("numeric", num_bootstrap)
+bootstrap_precision <- vector("numeric", num_bootstrap)
+bootstrap_recall <- vector("numeric", num_bootstrap)
+bootstrap_f1_score <- vector("numeric", num_bootstrap)
+# Loop through each bootstrap iteration
+for (j in 1:num_bootstrap) {
+  # Resample the dataset with replacement
+  bootstrap_indices <- sample(1:nrow(dataset2), replace = TRUE)
+  bootstrap_data <- dataset2[bootstrap_indices, ]
+  # Create stratified folds on the bootstrapped dataset
+  bootstrap_folds <- createFolds(bootstrap_data$p6b5, k = num_folds, 
+                                 list = TRUE, returnTrain = FALSE)
+  # Initialize lists to store evaluation metrics for each fold 
+  accuracy <- vector("numeric", num_folds)
+  precision <- vector("numeric", num_folds)
+  recall <- vector("numeric", num_folds)
+  f1_score <- vector("numeric", num_folds)
+  # Loop through each fold
+  for (i in 1:num_folds) {
+    # Extract the indices for the current fold
+    test_index <- unlist(bootstrap_folds[i])
+    # Create training indices by excluding the test indices
+    train_index <- setdiff(1:nrow(bootstrap_data), test_index)
+    # Extract train and test data using the indices
+    train_data <- bootstrap_data[train_index, ]
+    test_data <- bootstrap_data[test_index, ]
+    # Fit model
+    rf_model <- randomForest(p6b5 ~ ., data = train_data, ntree = 100)
+    # Make predictions on the test data
+    predictions <- predict(rf_model, newdata = test_data)
+    # Evaluate the model performance
+    confusion_matrix <- table(predictions, test_data$p6b5)
+    # Calculate evaluation metrics
+    accuracy[i] <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+    # Check if any class is missing in predictions
+    if (length(levels(predictions)) < 2) {
+      precision[i] <- 0
+      recall[i] <- 0
+      f1_score[i] <- 0
+    } else {
+      precision[i] <- confusion_matrix[2, 2] / sum(confusion_matrix[, 2])
+      recall[i] <- confusion_matrix[2, 2] / sum(confusion_matrix[2, ])    
+      f1_score[i] <- 2 * precision[i] * recall[i] / (precision[i] + recall[i])
+    }
+  }
+  # Store mean metrics for the current bootstrap iteration
+  bootstrap_accuracy[j] <- mean(accuracy)
+  bootstrap_precision[j] <- mean(precision)
+  bootstrap_recall[j] <- mean(recall)
+  bootstrap_f1_score[j] <- mean(f1_score)
+}
+# Calculate confidence intervals for each metric
+ci_accuracy <- quantile(bootstrap_accuracy, c(0.025, 0.975))
+ci_precision <- quantile(bootstrap_precision, c(0.025, 0.975))
+ci_recall <- quantile(bootstrap_recall, c(0.025, 0.975))
+ci_f1_score <- quantile(bootstrap_f1_score, c(0.025, 0.975))
+# Print evaluation metrics with confidence intervals
+cat("Accuracy:", mean(bootstrap_accuracy), 
+    "(", ci_accuracy[1], "-", ci_accuracy[2], ")\n")
+cat("Precision:", mean(bootstrap_precision), 
+    "(", ci_precision[1], "-", ci_precision[2], ")\n")
+cat("Recall:", mean(bootstrap_recall), 
+    "(", ci_recall[1], "-", ci_recall[2], ")\n")
+cat("F1 Score:", mean(bootstrap_f1_score), 
+    "(", ci_f1_score[1], "-", ci_f1_score[2], ")\n")
+# Print model summary
+summary(rf_model)
+``` 
+
+```{r 18}
+# Define metrics and their confidence intervals
+metrics <- c("Accuracy", "Precision", "Recall", "F1 Score")
+ci_lower <- c(ci_accuracy[1], ci_precision[1], ci_recall[1], ci_f1_score[1])
+ci_upper <- c(ci_accuracy[2], ci_precision[2], ci_recall[2], ci_f1_score[2])
+# Create a data frame
+ci_df <- data.frame(metrics, ci_lower, ci_upper)
+# Plot the bar plot with error bars
+ggplot(ci_df, aes(x = metrics, y = ci_upper)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, 
+                color = "black", position = position_dodge(0.9)) +
+  labs(title = "Confidence Intervals for Evaluation Metrics",
+       y = "Metric Value",
+       x = "Evaluation Metrics") +
+  theme_minimal() +
+  ylim(0.9, 1.0)  # Set y-axis limits
+``` 
+
+```{r 19}
+#data sources
+#https://ffcws.princeton.edu/data-and-documentation/public-data-documentation
+#publications and any previous work
+#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9407243/
+``` 

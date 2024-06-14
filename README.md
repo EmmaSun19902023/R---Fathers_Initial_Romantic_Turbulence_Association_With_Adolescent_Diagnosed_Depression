@@ -6,8 +6,10 @@ The models are fitted after preprocessing in a loop of 5-fold stratified K-fold 
 
 The Random Forest model emerged as the best performer based on the combination of metrics. It achieved a mean F1 score of 93.98%, indicating a strong balance between precision and recall.
 
-python = 3.10.5
-matplotlib = 3.5.2
+Required library versions:
+
+# python = 3.10.5
+# matplotlib = 3.5.2
 pandas = 1.4.2
 scikit-learn = 1.1.1
 numpy = 1.22.4

@@ -1,4 +1,4 @@
-# R: Fathers_Initial_Romantic_Turbulence_Association_with_Adolescent_Diagnosed_Depression
+# (R) Fathers Initial Romantic Turbulence Association with Adolescent Diagnosed Depression
 
 Developing GLM and Random Forest models to examine predictions based on the Princeton & Columbia FFCWS dataset.
 
